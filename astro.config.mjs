@@ -3,6 +3,8 @@ import { defineConfig, fontProviders } from "astro/config";
 // https://docs.astro.build/en/reference/configuration-reference/
 export default defineConfig({
   output: "static",
+  site: "https://undead34.github.io",
+  base: "/lyric-render-9-16",
   compressHTML: true,
   prefetch: false,
   // Servidor público: escucha en todas las interfaces (LAN + localhost).
@@ -26,6 +28,16 @@ export default defineConfig({
       weights: [400, 600, 700],
       styles: ["normal", "italic"],
       subsets: ["latin", "latin-ext"],
+      fallbacks: ["sans-serif"],
+      optimizedFallbacks: true,
+    },
+    {
+      provider: fontProviders.fontsource(),
+      name: "Fira Sans",
+      cssVariable: "--font-fira-sans",
+      weights: [400, 500, 700],
+      styles: ["normal"],
+      subsets: ["latin"],
       fallbacks: ["sans-serif"],
       optimizedFallbacks: true,
     },

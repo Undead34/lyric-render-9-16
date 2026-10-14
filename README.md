@@ -9,12 +9,13 @@ video. Todo en el navegador, nada se sube.
 
 ```sh
 npm install
-npm run dev      # estudio en http://localhost:8000
+npm run dev      # estudio en http://localhost:8000/lyric-render-9-16/
 ```
+Doble clic en `abrir-server.cmd` hace lo mismo (abre el navegador y levanta el dev).
 
 - Abre `/herramientas/` para Dividir y Reparar video.
-- `/#demo` y `/#demo16x9`: ver el diseño sin audio.
-- `npm run build` y doble clic en `abrir-server.cmd` para servir la versión compilada.
+- `/lyric-render-9-16/#demo` y `/lyric-render-9-16/#demo16x9`: ver el diseño sin audio.
+- `npm run build` genera `dist/` (lo que se publica).
 
 ## Flujo del estudio
 
@@ -45,4 +46,5 @@ npm run dev      # estudio en http://localhost:8000
 ## Notas
 
 - Chrome o Edge en desktop para grabar y convertir; todo es local y privado.
+- El sitio vive bajo el subpath `/lyric-render-9-16/` (Astro `base`): en GitHub Pages se publica en `https://undead34.github.io/lyric-render-9-16/` con el workflow de `.github/workflows/deploy.yml` (Settings → Pages → Source: GitHub Actions).
 - Licencia MIT. Las muestras de audio/video propias no se suben al repo (ver `.gitignore`).

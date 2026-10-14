@@ -1,28 +1,7 @@
 /* Señal Amarilla: estudio wayfinding sobre terminal nocturno.
    Mobile-first: la base es una columna (320px+); el grid estudio
-   llega en desktop. El amarillo queda reservado a wayfinding. */
-
-@font-face {
-  font-family: "Fira Sans";
-  src: url("/fonts/fira-sans-latin-400-normal.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Fira Sans";
-  src: url("/fonts/fira-sans-latin-500-normal.woff2") format("woff2");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Fira Sans";
-  src: url("/fonts/fira-sans-latin-700-normal.woff2") format("woff2");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
+   llega en desktop. El amarillo queda reservado a wayfinding.
+   Fuentes servidas por Astro (Fontsource, con base-path correcto). */
 
 :root {
   color-scheme: dark;
@@ -39,7 +18,7 @@
   --field: #0f0d0a;
   --ok: #9ad8a0;
   --err: #f0938c;
-  --sans: "Fira Sans", "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --sans: var(--font-fira-sans), "Fira Sans", "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
   --mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
 }
 
