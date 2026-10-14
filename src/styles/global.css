@@ -1,0 +1,872 @@
+/* Señal Amarilla: estudio wayfinding sobre terminal nocturno.
+   Mobile-first: la base es una columna (320px+); el grid estudio
+   llega en desktop. El amarillo queda reservado a wayfinding. */
+
+@font-face {
+  font-family: "Fira Sans";
+  src: url("/fonts/fira-sans-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Fira Sans";
+  src: url("/fonts/fira-sans-latin-500-normal.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Fira Sans";
+  src: url("/fonts/fira-sans-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ground: #14120e;
+  --ground-deep: #0d0c09;
+  --panel: #1b1712;
+  --ink: #f4ede0;
+  --ink-dim: #c0b49e;
+  --signal: #ffc400;
+  --signal-ink: #171106;
+  --line: #332c21;
+  --field: #0f0d0a;
+  --ok: #9ad8a0;
+  --err: #f0938c;
+  --sans: "Fira Sans", "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scrollbar-color: #4a4132 var(--ground-deep);
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+::selection {
+  background: var(--signal);
+  color: var(--signal-ink);
+}
+
+video { display: none; }
+
+/* ===== Banda superior: la señal que preside el pasillo ===== */
+/* El panel vive en el flujo del estudio; el escenario nunca se oculta.
+   El script lo desvanece al previsualizar/grabar y lo restaura al volver. */
+#ui-overlay {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  transition: opacity 0.45s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.sign-band {
+  background: var(--signal);
+  color: var(--signal-ink);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding:
+    calc(10px + var(--safe-top))
+    clamp(16px, 4vw, 40px)
+    10px;
+  border-bottom: 1px solid #0c0a06;
+}
+
+.band-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.band-glyph {
+  display: inline-flex;
+  flex: none;
+}
+
+.band-titles {
+  min-width: 0;
+}
+
+h1.app-title {
+  margin: 0;
+  font-size: clamp(1.15rem, 4.5vw + 0.4rem, 1.6rem);
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.band-sub {
+  margin: 2px 0 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #3d2f05;
+}
+
+.band-gate {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex: none;
+}
+
+.gate-label {
+  font-size: clamp(1.9rem, 6vw + 0.6rem, 2.9rem);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.gate-sub {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: lowercase;
+  border-bottom: 2px solid var(--signal-ink);
+  padding-bottom: 1px;
+}
+
+/* ===== Estudio: escenario + columna de decisiones ===== */
+.studio {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  flex: 1;
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 20px 16px calc(28px + var(--safe-bottom));
+  align-items: start;
+}
+
+/* ===== Escenario: el destino del pasillo ===== */
+.stage {
+  background: var(--ground-deep);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  position: relative;
+}
+
+.stage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stage-tag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--signal);
+}
+
+.stage-spec {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El canvas se escala para caber; su resolución interna la fija el
+   formato (1080x1920 en 9:16, 1920x1080 en 16:9).
+   translateZ(0) + will-change: compone en GPU y deja la
+   decodificación al pipeline de hardware. */
+canvas {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 62vh;
+  max-height: 62dvh;
+  margin: 0 auto;
+  background-color: #1a1216;
+  border-radius: 8px;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.55);
+  object-fit: contain;
+  transform: translateZ(0);
+  will-change: contents;
+  touch-action: manipulation;
+}
+
+.stage-foot {
+  margin: 2px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--ink-dim);
+  max-width: 65ch;
+}
+
+/* Salida del preview: solo el script la muestra. */
+#exitBtn {
+  display: none;
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+/* Punto rojo de cámara: lo único visible al renderizar, además del video. */
+.rec-dot {
+  display: none;
+  position: absolute;
+  top: 22px;
+  left: 22px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff3b30;
+  box-shadow: 0 0 12px rgba(255, 59, 48, 0.9);
+  animation: rec-pulse 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes rec-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* Render mínimo: fuera banda, cabecera, pie, avisos y salidas. Solo video. */
+body.is-recording .sign-band,
+body.is-recording .stage-head,
+body.is-recording .stage-foot,
+body.is-recording #exitBtn,
+body.is-recording #status {
+  display: none;
+}
+
+body.is-recording .studio {
+  padding: 0;
+  max-width: none;
+}
+
+body.is-recording .stage {
+  border: 0;
+  border-radius: 0;
+  background: #000;
+  padding: 0;
+}
+
+body.is-recording canvas {
+  max-height: 100vh;
+  max-height: 100dvh;
+  border-radius: 0;
+}
+
+body.is-recording .rec-dot {
+  top: 14px;
+  left: 14px;
+}
+
+/* ===== Columna de decisiones ===== */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.panel > .field {
+  --step: "·";
+}
+
+.panel > .field:has(#mediaInput) { --step: "1"; }
+.panel > .field:has(#coverInput) { --step: "2"; }
+.panel > .field:has(#lyricsInput) { --step: "3"; }
+.panel > .row { --step: "2"; }
+
+.field {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  color: var(--ink);
+  font-size: 1rem;
+  transition: border-color 0.45s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.field:focus-within,
+.field:has(#mediaInput:valid) {
+  border-color: var(--signal);
+}
+
+.field > label {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-weight: 700;
+  font-size: 1.02rem;
+  letter-spacing: -0.01em;
+}
+
+/* Número de puerta: hueso apagado hasta que el cruce se alcanza. */
+.field > label:not(.check)::before {
+  content: var(--step);
+  flex: none;
+  font-size: 1.55rem;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.45s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.field:focus-within > label:not(.check)::before,
+.field:has(#mediaInput:valid) > label:not(.check)::before {
+  color: var(--signal);
+}
+
+/* Interruptor de karaoke: nativo, teñido de señal. */
+.field > label.check {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--ink-dim);
+  margin-top: 12px;
+  cursor: pointer;
+  align-items: center;
+}
+
+.field > label.check input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  accent-color: var(--signal);
+  cursor: pointer;
+}
+
+/* 16px mínimo en inputs: evita el zoom automático de iOS al enfocar. */
+.field textarea,
+.field input[type="text"],
+.field select {
+  width: 100%;
+  background: var(--field);
+  color: var(--ink);
+  border: 1px solid #453a29;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 16px;
+  min-height: 48px;
+  caret-color: var(--signal);
+}
+
+.field textarea {
+  font-family: var(--mono);
+  height: 160px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.field input[type="text"],
+.field select {
+  font-family: var(--sans);
+}
+
+.field textarea:focus,
+.field input[type="text"]:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--signal);
+}
+
+.field input[type="file"] {
+  color: var(--ink-dim);
+  font-size: 0.875rem;
+  max-width: 100%;
+  font-family: var(--sans);
+}
+
+.field input[type="file"]::file-selector-button {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--signal-ink);
+  background: var(--signal);
+  border: 1px solid var(--signal);
+  border-radius: 8px;
+  padding: 9px 16px;
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+/* Datos (canción / artista / formato): tira plana, sin tarjetas anidadas. */
+.row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.row::before {
+  content: var(--step);
+  font-size: 1.55rem;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.45s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.row:focus-within::before {
+  color: var(--signal);
+}
+
+.row .field {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+
+.row .field > label {
+  font-size: 0.95rem;
+}
+
+.row .field > label::before {
+  content: none;
+}
+
+.hint { color: var(--ink-dim); font-size: 0.8125rem; line-height: 1.55; margin-top: 8px; }
+.hint code { font-family: var(--mono); color: var(--ink); font-size: 0.78rem; }
+
+/* ===== Transporte ===== */
+/* Transporte siempre a mano: barra fija al pie mientras bajas por la letra. */
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  position: sticky;
+  bottom: 12px;
+  z-index: 5;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.btn {
+  appearance: none;
+  min-height: 52px;
+  width: 100%;
+  font-family: var(--sans);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  border-radius: 12px;
+  cursor: pointer;
+  padding: 14px 22px;
+  touch-action: manipulation;
+  transition: transform 0.25s cubic-bezier(0, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0, 0, 0.2, 1),
+    background-color 0.25s cubic-bezier(0, 0, 0.2, 1);
+}
+
+#renderBtn,
+#splitBtn,
+#repairBtn {
+  color: var(--signal-ink);
+  background: var(--signal);
+  border: 1px solid var(--signal);
+  box-shadow: 0 10px 28px rgba(255, 196, 0, 0.22);
+}
+
+#renderBtn::after {
+  content: " →";
+}
+
+#renderBtn:hover,
+#splitBtn:hover,
+#repairBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px rgba(255, 196, 0, 0.28);
+}
+
+#renderBtn:active,
+#splitBtn:active,
+#repairBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 18px rgba(255, 196, 0, 0.2);
+}
+
+#previewBtn,
+#splitAll {
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid #5a4e38;
+}
+
+#previewBtn:hover,
+#splitAll:hover {
+  transform: translateY(-2px);
+  border-color: var(--signal);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+#previewBtn:active,
+#splitAll:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+:focus-visible {
+  outline: 3px solid var(--signal);
+  outline-offset: 2px;
+}
+
+/* ===== Búsqueda online (LRCLIB) ===== */
+.btn-small {
+  width: auto;
+  min-height: 44px;
+  padding: 10px 20px;
+  font-size: 0.92rem;
+  margin: 12px 0 0;
+  border-radius: 999px;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid #5a4e38;
+  box-shadow: none;
+}
+
+.btn-small:hover {
+  border-color: var(--signal);
+  transform: translateY(-1px);
+}
+
+.btn:disabled { opacity: 0.55; cursor: wait; transform: none; }
+
+#lookup-status {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-top: 8px;
+  min-height: 1.2em;
+  color: var(--ink-dim);
+}
+
+#lookup-status.ok { color: var(--ok); }
+#lookup-status.error { color: var(--err); }
+
+#status {
+  display: none;
+  background: var(--signal);
+  color: var(--signal-ink);
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+/* Durante preview/grabación el escenario llena la pantalla: el panel ya está
+   oculto y el grid cede su columna. */
+body.is-playing .studio {
+  grid-template-columns: 1fr;
+  max-width: none;
+  padding: 16px clamp(12px, 3vw, 32px) calc(20px + var(--safe-bottom));
+}
+
+body.is-playing .stage {
+  position: static;
+  align-items: center;
+}
+
+body.is-playing .stage-foot {
+  text-align: center;
+}
+
+body.is-playing canvas {
+  max-height: calc(100vh - 300px);
+  max-height: calc(100dvh - 300px);
+}
+
+/* Pantalla completa real durante preview/grabación. */
+.stage:fullscreen,
+.stage:-webkit-full-screen {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  background: #000;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.stage:fullscreen canvas,
+.stage:-webkit-full-screen canvas {
+  max-height: 88vh;
+  max-height: 88dvh;
+}
+
+/* ===== Desktop: el pasillo se abre ===== */
+@media (min-width: 1024px) {
+  .studio {
+    grid-template-columns: minmax(0, 1.25fr) minmax(360px, 440px);
+    gap: 24px;
+    padding: 28px clamp(20px, 3vw, 44px) calc(36px + var(--safe-bottom));
+  }
+
+  .stage {
+    position: sticky;
+    top: 20px;
+    padding: 18px;
+  }
+
+  canvas {
+    max-height: calc(100vh - 320px);
+    max-height: calc(100dvh - 320px);
+  }
+
+  .row {
+    grid-template-columns: 1fr 1fr auto;
+    align-items: end;
+  }
+
+  .row::before {
+    grid-column: 1 / -1;
+  }
+
+  .field-format {
+    min-width: 150px;
+  }
+
+  .actions {
+    flex-direction: row;
+  }
+
+  .actions .btn {
+    width: auto;
+    flex: 1;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023.98px) {
+  .row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .row .field-format {
+    grid-column: 1 / -1;
+  }
+
+  .field textarea { height: 190px; }
+}
+
+/* Respeta a quien pide menos movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  .field,
+  .field > label:not(.check)::before,
+  .row::before,
+  .btn {
+    transition: none;
+  }
+  .rec-dot {
+    animation: none;
+  }
+}
+
+/* ===== Herramientas: heredan la señal, sin números de pasos ajenos ===== */
+.band-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.band-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 18px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--signal-ink);
+  border: 1px solid var(--signal-ink);
+  border-radius: 999px;
+}
+
+.band-nav a[aria-current="page"] {
+  background: var(--signal-ink);
+  color: var(--signal);
+}
+
+.studio-tools {
+  align-items: start;
+}
+
+@media (min-width: 1200px) {
+  .studio-tools {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.tool {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.tool-head {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.tool-num {
+  flex: none;
+  font-size: 1.9rem;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--signal);
+  font-variant-numeric: tabular-nums;
+}
+
+.tool-head h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.tool-head p {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--ink-dim);
+  max-width: 62ch;
+}
+
+.studio-tools .row::before {
+  content: none;
+}
+
+.studio-tools .field > label:not(.check)::before {
+  content: none;
+}
+
+.field input[type="number"] {
+  width: 100%;
+  background: var(--field);
+  color: var(--ink);
+  border: 1px solid #453a29;
+  border-radius: 10px;
+  padding: 12px;
+  font-family: var(--sans);
+  font-size: 16px;
+  min-height: 48px;
+  font-variant-numeric: tabular-nums;
+}
+
+.field input[type="number"]:focus {
+  outline: none;
+  border-color: var(--signal);
+}
+
+.tool-status {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  min-height: 1.2em;
+  color: var(--ink-dim);
+}
+
+.tool-status.ok { color: var(--ok); }
+.tool-status.error { color: var(--err); }
+
+.meter {
+  height: 10px;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.meter > i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--signal);
+  transition: width 0.2s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.parts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.part {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 10px 10px 14px;
+}
+
+.part-name {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.part .btn-small {
+  flex: none;
+  margin: 0;
+}

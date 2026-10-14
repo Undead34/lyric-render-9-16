@@ -1,0 +1,82 @@
+---
+---
+
+<header class="sign-band">
+  <div class="band-brand">
+    <span class="band-glyph" aria-hidden="true">
+      <svg viewBox="0 0 32 32" width="28" height="28" focusable="false">
+        <rect x="1.5" y="1.5" width="29" height="29" rx="7" fill="#161006" />
+        <circle cx="16" cy="16" r="8.5" fill="none" stroke="#fff" stroke-width="2.4" />
+        <path d="M13.4 11.2 20.8 16l-7.4 4.8z" fill="#fff" />
+      </svg>
+    </span>
+    <div class="band-titles">
+      <h1 class="app-title">Herramientas</h1>
+      <p class="band-sub">Dividir y reparar · todo local</p>
+    </div>
+  </div>
+  <nav class="band-nav" aria-label="Secciones">
+    <a href="/">Estudio</a>
+    <a href="/herramientas/" aria-current="page">Herramientas</a>
+  </nav>
+  <div class="band-gate">
+    <span class="gate-label">MP4</span>
+    <span class="gate-sub">h264 + aac</span>
+  </div>
+</header>
+
+<main class="studio studio-tools">
+  <section class="tool" aria-labelledby="t-split">
+    <div class="tool-head">
+      <span class="tool-num" aria-hidden="true">01</span>
+      <div>
+        <h2 id="t-split">Dividir video</h2>
+        <p>Partes exactas de N segundos, cada una un MP4 independiente.</p>
+      </div>
+    </div>
+    <div class="field">
+      <label for="splitInput">Archivo de video</label>
+      <input type="file" id="splitInput" accept="video/*,audio/*" />
+      <div class="hint">Se recodifica a H.264 + AAC con faststart, como tu script de 90 segundos.</div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="splitSecs">Segundos por parte</label>
+        <input type="number" id="splitSecs" value="90" min="5" max="600" step="1" inputmode="numeric" />
+      </div>
+      <div class="field field-go">
+        <label for="splitBtn">Convertir</label>
+        <button class="btn" id="splitBtn" type="button">Dividir en partes</button>
+      </div>
+    </div>
+    <div class="tool-status" id="splitStatus" role="status" aria-live="polite"></div>
+    <div class="meter" id="splitMeter" hidden><i id="splitBar"></i></div>
+    <ul class="parts" id="splitList"></ul>
+    <div class="actions">
+      <button class="btn" id="splitAll" type="button" disabled>Descargar todo</button>
+    </div>
+  </section>
+
+  <section class="tool" aria-labelledby="t-repair">
+    <div class="tool-head">
+      <span class="tool-num" aria-hidden="true">02</span>
+      <div>
+        <h2 id="t-repair">Reparar video</h2>
+        <p>Re-encodea a un MP4 H.264 bien formado con timestamps sanos.</p>
+      </div>
+    </div>
+    <div class="field">
+      <label for="repairInput">Archivo a reparar</label>
+      <input type="file" id="repairInput" accept="video/*" />
+      <div class="hint">Típicamente el .webm que graba el navegador. Sale como <code>_reparado.mp4</code>.</div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="repairBtn" type="button">Reparar a MP4</button>
+    </div>
+    <div class="tool-status" id="repairStatus" role="status" aria-live="polite"></div>
+    <div class="meter" id="repairMeter" hidden><i id="repairBar"></i></div>
+    <ul class="parts" id="repairList"></ul>
+  </section>
+</main>
+
+<script src="../scripts/herramientas.ts"></script>

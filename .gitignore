@@ -1,0 +1,27 @@
+.astro/
+.env
+dist/
+node_modules/
+bun.lockb
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+
+# Herramientas de sesión (locales, no producto)
+/.impeccable/
+/.claude/
+/.codex/
+/.opencode/
+
+# Muestras locales: pesan y traen copyright, no se suben
+/*.mp4
+/*.webm
+/*.mkv
+/*.mp3
+/*.wav
+/*.ogg
+/*.opus
+/*.m4a
+/*.png
+/*.txt

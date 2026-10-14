@@ -1,0 +1,126 @@
+---
+---
+
+<video
+  id="videoPlayer"
+  crossorigin="anonymous"
+  preload="auto"
+  playsinline
+  disablepictureinpicture
+  aria-hidden="true"
+></video>
+
+<header class="sign-band">
+  <div class="band-brand">
+    <span class="band-glyph" aria-hidden="true">
+      <svg viewBox="0 0 32 32" width="28" height="28" focusable="false">
+        <rect x="1.5" y="1.5" width="29" height="29" rx="7" fill="#161006" />
+        <circle cx="16" cy="16" r="8.5" fill="none" stroke="#fff" stroke-width="2.4" />
+        <path d="M13.4 11.2 20.8 16l-7.4 4.8z" fill="#fff" />
+      </svg>
+    </span>
+    <div class="band-titles">
+      <h1 class="app-title">Lyric Render 9:16</h1>
+      <p class="band-sub">Estudio local · nada se sube</p>
+    </div>
+  </div>
+    <nav class="band-nav" aria-label="Secciones">
+      <a href="/" aria-current="page">Estudio</a>
+      <a href="/herramientas/">Herramientas</a>
+    </nav>
+    <div class="band-gate">
+      <span class="gate-label" id="gateLabel">9:16</span>
+      <span class="gate-sub" id="gateSub">vertical</span>
+    </div>
+</header>
+
+<main class="studio">
+  <!-- El escenario vive fuera del panel: previsualizar o grabar nunca lo oculta. -->
+  <section class="stage" id="stage" aria-label="Escenario de previsualización">
+    <div class="stage-head">
+      <span class="stage-tag">Escenario</span>
+      <span class="stage-spec" id="stageSpec">1080 × 1920</span>
+    </div>
+    <!-- Canvas vertical 9:16 Full HD por defecto -->
+    <canvas id="appCanvas" width="1080" height="1920"></canvas>
+    <span class="rec-dot" id="recDot" aria-hidden="true"></span>
+    <p class="stage-foot">La línea activa se ilumina al centro, con su traducción debajo. Título y artista cierran al pie del video.</p>
+    <button class="btn btn-small stage-exit" id="exitBtn" type="button">← Volver al estudio</button>
+    <div id="status" role="status">Grabando... El video se descargará al terminar la canción.</div>
+  </section>
+
+  <div id="ui-overlay" class="panel">
+    <div class="field">
+      <label for="mediaInput">Archivo de música / video</label>
+      <input type="file" id="mediaInput" accept="audio/*,video/*" required />
+      <div class="hint">Elige la canción (mp3, opus, webm, mp4...). Si tiene video se usa de fondo. Al subirla se autocompletan título, artista y letra vía LRCLIB.</div>
+      <button class="btn btn-small" id="lookupBtn" type="button">Buscar datos y letra online</button>
+      <div id="lookup-status" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="field">
+      <label for="coverInput">Imagen de fondo / portada (opcional)</label>
+      <!-- decoding async + fetchpriority: la portada se decodifica fuera del hilo principal -->
+      <input type="file" id="coverInput" accept="image/*" />
+      <div class="hint">Si el audio trae imagen incrustada se usa sola. Si subes una, esa manda. Sin imagen se usa un degradado cálido.</div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="titleInput">Canción</label>
+        <input type="text" id="titleInput" value="Sure Thing" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="artistInput">Artista</label>
+        <input type="text" id="artistInput" value="Miguel" autocomplete="off" />
+      </div>
+      <div class="field field-format">
+        <label for="aspectInput">Formato</label>
+        <select id="aspectInput">
+          <option value="9:16" selected>9:16 vertical</option>
+          <option value="16:9">16:9 horizontal</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="lyricsInput">Letra (formato LRC)</label>
+      <textarea id="lyricsInput" spellcheck="false"></textarea>
+        <div class="hint">
+          Una línea por verso: <code>[mm:ss.xx] Texto original</code><br />
+          Traducción justo debajo, entre corchetes: <code>[mm:ss.xx] [Texto traducido]</code><br />
+          Karaoke opcional por palabra: <code>[mm:ss.xx] &lt;mm:ss.xx&gt;Palabra</code>
+        </div>
+        <label class="check" for="karaokeInput">
+          <input type="checkbox" id="karaokeInput" checked />
+          Coloreo karaoke
+        </label>
+    </div>
+
+      <div class="actions">
+        <button class="btn" id="previewBtn" type="button">Solo Previsualizar</button>
+        <button class="btn" id="renderBtn" type="button">Renderizar Video (Grabar y Descargar)</button>
+      </div>
+  </div>
+</main>
+
+<script>
+  const aspect = document.getElementById("aspectInput");
+  const gate = document.getElementById("gateLabel");
+  const gateSub = document.getElementById("gateSub");
+  const spec = document.getElementById("stageSpec");
+  const SPECS = {
+    "9:16": ["9:16", "vertical", "1080 × 1920"],
+    "16:9": ["16:9", "horizontal", "1920 × 1080"],
+  };
+  function syncGate() {
+    const m = SPECS[aspect.value] ?? SPECS["9:16"];
+    gate.textContent = m[0];
+    gateSub.textContent = m[1];
+    spec.textContent = m[2];
+  }
+  aspect.addEventListener("change", syncGate);
+  syncGate();
+</script>
+
+<script src="../scripts/lyric-render.ts"></script>

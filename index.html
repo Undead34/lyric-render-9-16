@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lyric Render 9:16</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #111;
+            font-family: 'Quicksand', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* El canvas se escala para caber en tu pantalla; su resolución interna
+           la fija el formato elegido (1080x1920 en 9:16, 1920x1080 en 16:9) */
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            background-color: #1a1216;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            object-fit: contain;
+        }
+
+        video { display: none; }
+
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 10;
+            transition: opacity 0.5s;
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 22px;
+            font-weight: 700;
+            font-family: 'Quicksand', sans-serif;
+            color: #fff;
+            background: linear-gradient(45deg, #c98a5e, #a86ad8);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 10px;
+            box-shadow: 0 5px 15px rgba(200, 140, 100, 0.35);
+            transition: transform 0.2s;
+        }
+
+        .btn:hover { transform: scale(1.05); }
+
+        .field {
+            width: min(720px, 90vw);
+            margin: 8px 0;
+            color: #eee;
+            font-size: 15px;
+            text-align: left;
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 5px;
+            color: #e0b08a;
+            font-weight: 700;
+        }
+
+        .field textarea, .field input[type="text"], .field select {
+            width: 100%;
+            box-sizing: border-box;
+            background: #1d1519;
+            color: #fff;
+            border: 1px solid #c98a5e55;
+            border-radius: 10px;
+            padding: 10px;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+        }
+
+        .field textarea { height: 200px; resize: vertical; }
+
+        .field input[type="file"] { color: #ccc; }
+
+        .row { display: flex; gap: 12px; width: min(720px, 90vw); }
+        .row .field { flex: 1; }
+
+        .hint {
+            color: #999;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        #status {
+            color: #e0b08a;
+            font-size: 24px;
+            margin-top: 20px;
+            display: none;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(224, 176, 138, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <video id="videoPlayer" crossorigin="anonymous"></video>
+
+    <!-- Canvas vertical 9:16 Full HD -->
+    <canvas id="appCanvas" width="1080" height="1920"></canvas>
+
+    <div id="ui-overlay">
+        <h1 style="color: #e8c9a8; font-weight: 700; font-size: 40px; margin: 10px 0;">Lyric Render 9:16</h1>
+
+        <div class="field">
+            <label for="mediaInput">Archivo de música / video</label>
+            <input type="file" id="mediaInput" accept="audio/*,video/*">
+            <div class="hint">Elige la canción (mp3, opus, webm, mp4...). Si tiene video se usa de fondo.</div>
+        </div>
+
+        <div class="field">
+            <label for="coverInput">Imagen de fondo / portada (opcional)</label>
+            <input type="file" id="coverInput" accept="image/*">
+            <div class="hint">Se convierte en un blur poderoso animado de fondo. Si no cargas nada se usa un degradado cálido.</div>
+        </div>
+
+        <div class="row">
+            <div class="field">
+                <label for="titleInput">Canción</label>
+                <input type="text" id="titleInput" value="Sure Thing">
+            </div>
+            <div class="field">
+                <label for="artistInput">Artista</label>
+                <input type="text" id="artistInput" value="Miguel">
+            </div>
+            <div class="field" style="flex: 0 0 150px;">
+                <label for="aspectInput">Formato</label>
+                <select id="aspectInput">
+                    <option value="9:16" selected>9:16 vertical</option>
+                    <option value="16:9">16:9 horizontal</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="lyricsInput">Letra (formato LRC)</label>
+            <textarea id="lyricsInput" spellcheck="false"></textarea>
+            <div class="hint">
+                Una línea por verso: <code>[mm:ss.xx] Texto original</code><br>
+                Traducción justo debajo, entre corchetes: <code>[mm:ss.xx] [Texto traducido]</code>
+            </div>
+        </div>
+
+        <div>
+            <button class="btn" id="previewBtn">Solo Previsualizar</button>
+            <button class="btn" id="renderBtn">Renderizar Video (Grabar y Descargar)</button>
+        </div>
+        <div id="status">Grabando... El video se descargará al terminar la canción.</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('appCanvas');
+        const ctx = canvas.getContext('2d');
+        const video = document.getElementById('videoPlayer');
+        const overlay = document.getElementById('ui-overlay');
+        const statusText = document.getElementById('status');
+        const mediaInput = document.getElementById('mediaInput');
+        const lyricsInput = document.getElementById('lyricsInput');
+        const titleInput = document.getElementById('titleInput');
+        const artistInput = document.getElementById('artistInput');
+        const coverInput = document.getElementById('coverInput');
+        const aspectInput = document.getElementById('aspectInput');
+
+        let coverImage = null; // imagen cargada para el fondo difuminado
+
+        // ====== PRESETS DE FORMATO ======
+        // Layout completo por relación de aspecto; se aplica con applyAspect().
+        const PRESETS = {
+            '9:16': {
+                w: 1080, h: 1920,
+                centerY: 700, lineHeight: 190,
+                fActive: 62, fActiveT: 48, fIdle: 54, fIdleT: 40,
+                maxW: 960, maxWT: 920,
+                fTitle: 52, fArtist: 42, titleY: 1655, artistY: 1725,
+                css: { width: 'auto', height: '100%', aspectRatio: '9 / 16' }
+            },
+            '16:9': {
+                w: 1920, h: 1080,
+                centerY: 400, lineHeight: 135,
+                fActive: 52, fActiveT: 38, fIdle: 44, fIdleT: 32,
+                maxW: 1700, maxWT: 1600,
+                fTitle: 44, fArtist: 34, titleY: 930, artistY: 990,
+                css: { width: '100%', height: 'auto', aspectRatio: '16 / 9' }
+            }
+        };
+
+        let width, height, centerY, lineHeight;
+        let fActive, fActiveT, fIdle, fIdleT, maxW, maxWT;
+        let fTitle, fArtist, titleY, artistY;
+
+        function applyAspect(key) {
+            const p = PRESETS[key] || PRESETS['9:16'];
+            width = p.w; height = p.h;
+            centerY = p.centerY; lineHeight = p.lineHeight;
+            fActive = p.fActive; fActiveT = p.fActiveT;
+            fIdle = p.fIdle; fIdleT = p.fIdleT;
+            maxW = p.maxW; maxWT = p.maxWT;
+            fTitle = p.fTitle; fArtist = p.fArtist;
+            titleY = p.titleY; artistY = p.artistY;
+            canvas.width = width;
+            canvas.height = height;
+            canvas.style.width = p.css.width;
+            canvas.style.height = p.css.height;
+            canvas.style.aspectRatio = p.css.aspectRatio;
+        }
+        applyAspect(aspectInput.value);
+        aspectInput.addEventListener('change', () => applyAspect(aspectInput.value));
+
+        let isPlaying = false;
+        let isRecording = false;
+        let mediaRecorder;
+        let recordedChunks = [];
+        let lyrics = [];
+        let activeIndex = -1;
+        let targetScrollY = 0;
+        let currentScrollY = 0;
+
+        // ====== EJEMPLO DE LETRA (bórralo y pega la tuya) ======
+        lyricsInput.value = `[00:01.02]Love you like a brother
+[00:01.02] [Te quiero como a un hermano]
+[00:03.88]Treat you like a friend
+[00:03.88] [Te trato como a un amigo]
+[00:06.75]Respect you like a lover
+[00:06.75] [Te respeto como a un amante]
+[00:12.54]You could bet that never gotta sweat that
+[00:12.54] [Puedes apostar que nunca tendrás que preocuparte]
+[00:23.31]If you be the cash I'll be the rubber band
+[00:23.31] [Si tú eres el dinero, yo seré la liga]
+[00:26.39]You be the match I'mma be your fuse boom
+[00:26.39] [Tú eres la cerilla, yo seré tu mecha, boom]
+[01:09.31]Cause this love is a sure thing
+[01:09.31] [Porque este amor es una apuesta segura]`;
+
+        // ====== PARSEO DE LETRA ======
+        // [mm:ss.xx] Texto            -> línea original
+        // [mm:ss.xx] [Texto]          -> traducción de la línea anterior
+        function parseLyrics(raw) {
+            const parsed = [];
+            const regex = /\[(\d{2}):(\d{2}\.\d{2})\](.*)/;
+            raw.trim().split('\n').forEach((line) => {
+                const match = line.trim().match(regex);
+                if (!match) return;
+                const time = (parseInt(match[1]) * 60) + parseFloat(match[2]);
+                const text = match[3].trim();
+                if (!text) return;
+
+                const translationMatch = text.match(/^\[(.*)\]$/);
+                if (translationMatch && parsed.length > 0) {
+                    // Es traducción: se engancha a la línea original anterior
+                    parsed[parsed.length - 1].translation = translationMatch[1].trim();
+                } else {
+                    parsed.push({ time, text, translation: null });
+                }
+            });
+            parsed.sort((a, b) => a.time - b.time);
+            return parsed;
+        }
+
+        // ====== FONDO: BLUR PODEROSO ANIMADO ======
+        // Respira (zoom lento), deriva (paneo suave) y pulsa (brillo) usando
+        // la imagen cargada o los frames del video como fuente.
+        function drawBackground() {
+            let source = null, sw = 0, sh = 0;
+            if (video.readyState >= 2 && video.videoWidth > 0) {
+                source = video; sw = video.videoWidth; sh = video.videoHeight;
+            } else if (coverImage) {
+                source = coverImage; sw = coverImage.naturalWidth; sh = coverImage.naturalHeight;
+            }
+
+            if (source) {
+                const t = performance.now() / 1000;
+                const zoom = 1.18 + Math.sin(t * 0.25) * 0.07;      // respiración
+                const panX = Math.sin(t * 0.18) * 55;               // deriva horizontal
+                const panY = Math.cos(t * 0.14) * 70;               // deriva vertical
+
+                const bgScale = Math.max(width / sw, height / sh) * zoom;
+                const bgW = sw * bgScale;
+                const bgH = sh * bgScale;
+
+                // Capa principal: blur fuerte, colores saturados
+                ctx.save();
+                ctx.filter = 'blur(60px) brightness(0.62) saturate(1.7) contrast(1.08)';
+                ctx.drawImage(source, (width - bgW) / 2 + panX, (height - bgH) / 2 + panY, bgW, bgH);
+                ctx.restore();
+
+                // Segunda capa desfasada: da profundidad y movimiento extra
+                ctx.save();
+                ctx.globalAlpha = 0.45;
+                ctx.filter = 'blur(90px) brightness(0.75) saturate(1.9)';
+                const zoom2 = zoom * 1.12;
+                const bgW2 = sw * Math.max(width / sw, height / sh) * zoom2;
+                const bgH2 = sh * Math.max(width / sw, height / sh) * zoom2;
+                ctx.drawImage(source, (width - bgW2) / 2 - panX * 1.4, (height - bgH2) / 2 - panY * 1.4, bgW2, bgH2);
+                ctx.restore();
+
+                // Velo oscuro que pulsa suavemente para legibilidad
+                const pulse = 0.28 + Math.sin(t * 0.8) * 0.05;
+                ctx.fillStyle = `rgba(35, 20, 32, ${pulse})`;
+                ctx.fillRect(0, 0, width, height);
+            } else {
+                // Sin imagen: degradado cálido animado
+                const t = performance.now() / 1000;
+                const shift = (Math.sin(t * 0.3) + 1) / 2; // 0..1
+                const grad = ctx.createLinearGradient(0, 0, 0, height);
+                grad.addColorStop(0, `rgb(${138 + shift * 30}, ${90 - shift * 15}, ${68 + shift * 20})`);
+                grad.addColorStop(0.5, '#5c3a40');
+                grad.addColorStop(1, '#2a1c26');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, width, height);
+            }
+        }
+
+        // ====== DIBUJO DE UNA LÍNEA (original + traducción abajito) ======
+        function drawLyricBlock(lyric, isActive, x, y, scale) {
+            const hasTranslation = !!lyric.translation;
+            // Separación vertical proporcional al alto del bloque
+            const originalY = hasTranslation ? -Math.round(lineHeight * 0.19) : 0;
+            const translationY = Math.round(lineHeight * 0.2);
+
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // --- Original ---
+            if (isActive) {
+                ctx.font = `700 ${fActive}px "Quicksand"`;
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = 'rgba(0,0,0,0.55)';
+                ctx.shadowBlur = 12;
+            } else {
+                ctx.font = `600 ${fIdle}px "Quicksand"`;
+                ctx.fillStyle = '#e3dce4';
+                ctx.shadowColor = 'rgba(0,0,0,0.4)';
+                ctx.shadowBlur = 8;
+            }
+
+            let safeScale = 1;
+            const textWidth = ctx.measureText(lyric.text).width;
+            if (textWidth > maxW) safeScale = maxW / textWidth;
+
+            ctx.save();
+            ctx.scale(scale * safeScale, scale * safeScale);
+            ctx.fillText(lyric.text, 0, originalY / (scale * safeScale));
+            ctx.restore();
+
+            // --- Traducción (abajito, entre corchetes, más pequeña) ---
+            if (hasTranslation) {
+                if (isActive) {
+                    ctx.font = `400 ${fActiveT}px "Quicksand"`;
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+                } else {
+                    ctx.font = `400 ${fIdleT}px "Quicksand"`;
+                    ctx.fillStyle = 'rgba(210, 200, 212, 0.75)';
+                }
+
+                let tSafeScale = 1;
+                const tText = '[' + lyric.translation + ']';
+                const tWidth = ctx.measureText(tText).width;
+                if (tWidth > maxWT) tSafeScale = maxWT / tWidth;
+
+                ctx.save();
+                ctx.scale(scale * tSafeScale, scale * tSafeScale);
+                ctx.fillText(tText, 0, translationY / (scale * tSafeScale));
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+
+        // ====== FRAME COMPLETO ======
+        function drawFrame(currentTime) {
+            ctx.clearRect(0, 0, width, height);
+            drawBackground();
+
+            // Línea activa según el tiempo
+            let newActiveIndex = -1;
+            for (let i = 0; i < lyrics.length; i++) {
+                if (currentTime >= lyrics[i].time) newActiveIndex = i;
+                else break;
+            }
+
+            if (newActiveIndex !== activeIndex && newActiveIndex !== -1) {
+                activeIndex = newActiveIndex;
+                targetScrollY = -(activeIndex * lineHeight);
+            }
+
+            currentScrollY += (targetScrollY - currentScrollY) * 0.08;
+
+            const lyricsX = width / 2;
+            const firstVisible = Math.max(activeIndex, 0);
+
+            lyrics.forEach((lyric, i) => {
+                if (i < firstVisible) return; // las que ya pasaron desaparecen
+                const lineY = centerY + (i * lineHeight) + currentScrollY;
+
+                if (lineY > -120 && lineY < height + 120) {
+                    const distFromCenter = Math.abs(lineY - centerY);
+                    const ratio = Math.max(0, 1 - (distFromCenter / (height / 2)));
+                    const opacity = Math.pow(ratio, 1.5);
+                    const scale = 0.92 + (0.08 * ratio);
+
+                    ctx.save();
+                    ctx.globalAlpha = opacity;
+                    drawLyricBlock(lyric, i === activeIndex, lyricsX, lineY, scale);
+                    ctx.restore();
+                }
+            });
+
+            // Canción + artista abajo (estilo app de música)
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(0,0,0,0.6)';
+            ctx.shadowBlur = 10;
+
+            ctx.font = `700 ${fTitle}px "Quicksand"`;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(titleInput.value.trim(), width / 2, titleY);
+
+            ctx.font = `400 ${fArtist}px "Quicksand"`;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.fillText(artistInput.value.trim(), width / 2, artistY);
+            ctx.restore();
+        }
+
+        function animate() {
+            if (!isPlaying) return;
+            drawFrame(video.currentTime);
+            requestAnimationFrame(animate);
+        }
+
+        // ====== LÓGICA DE GRABACIÓN ======
+        function startRecording() {
+            try {
+                const canvasStream = canvas.captureStream(60);
+
+                let audioStream;
+                if (video.captureStream) {
+                    audioStream = video.captureStream();
+                } else if (video.mozCaptureStream) {
+                    audioStream = video.mozCaptureStream();
+                } else {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const dest = audioCtx.createMediaStreamDestination();
+                    const source = audioCtx.createMediaElementSource(video);
+                    source.connect(dest);
+                    source.connect(audioCtx.destination);
+                    audioStream = dest.stream;
+                }
+
+                const combinedStream = new MediaStream([
+                    ...canvasStream.getVideoTracks(),
+                    ...audioStream.getAudioTracks()
+                ]);
+
+                mediaRecorder = new MediaRecorder(combinedStream, {
+                    mimeType: 'video/webm; codecs=vp9'
+                });
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) recordedChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    const base = (titleInput.value.trim() || 'render_9x16').replace(/[^\w\- ]/g, '').replace(/\s+/g, '_');
+                    a.download = base + '.webm';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    statusText.innerText = "¡Video renderizado y descargado!";
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+            } catch (err) {
+                console.error("Error al iniciar la grabación: ", err);
+                alert("Tu navegador no soporta la grabación directa. Prueba en Google Chrome o Edge.");
+            }
+        }
+
+        function initPlayback(record = false) {
+            if (!video.src) {
+                alert("Primero elige un archivo de música o video.");
+                return;
+            }
+
+            lyrics = parseLyrics(lyricsInput.value);
+            if (lyrics.length === 0) {
+                alert("No encontré líneas válidas. Usa el formato [mm:ss.xx] Texto");
+                return;
+            }
+            activeIndex = -1;
+            targetScrollY = 0;
+            currentScrollY = 0;
+            recordedChunks = [];
+
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.style.display = 'none', 500);
+
+            if (record) {
+                overlay.style.display = 'flex';
+                overlay.style.opacity = '1';
+                document.getElementById('previewBtn').style.display = 'none';
+                document.getElementById('renderBtn').style.display = 'none';
+                document.querySelectorAll('.field').forEach(f => f.style.display = 'none');
+                document.querySelector('.row').style.display = 'none';
+                statusText.style.display = 'block';
+                startRecording();
+            }
+
+            video.currentTime = 0;
+            video.play().then(() => {
+                isPlaying = true;
+                animate();
+            });
+        }
+
+        mediaInput.addEventListener('change', () => {
+            const file = mediaInput.files[0];
+            if (file) {
+                video.src = URL.createObjectURL(file);
+                video.load();
+            }
+        });
+
+        coverInput.addEventListener('change', () => {
+            const file = coverInput.files[0];
+            if (file) {
+                const img = new Image();
+                img.onload = () => { coverImage = img; };
+                img.src = URL.createObjectURL(file);
+            }
+        });
+
+        document.getElementById('previewBtn').addEventListener('click', () => initPlayback(false));
+        document.getElementById('renderBtn').addEventListener('click', () => initPlayback(true));
+
+        video.addEventListener('ended', () => {
+            if (isRecording && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+        });
+
+        // ====== MODO DEMO: abrir index.html#demo (o #demo16x9) para ver el diseño sin música ======
+        if (location.hash.includes('demo')) {
+            if (location.hash.includes('16x9')) {
+                aspectInput.value = '16:9';
+                applyAspect('16:9');
+            }
+            lyrics = parseLyrics(lyricsInput.value);
+            overlay.style.display = 'none';
+            const start = Date.now();
+            const offset = 14; // arranca con la segunda línea activa
+            (function demoLoop() {
+                drawFrame((Date.now() - start) / 1000 + offset);
+                requestAnimationFrame(demoLoop);
+            })();
+        }
+    </script>
+</body>
+</html>
